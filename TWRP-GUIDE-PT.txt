@@ -1,0 +1,37 @@
+========================================
+TWRP no Moto G62 5G (rhodec) - GUIA
+========================================
+
+ONDE BAIXAR
+- Aba Releases do repositorio: twrp.img (bootimage com recovery)
+
+REGRA DE OURO
+- Use SEMPRE: fastboot boot twrp.img
+- Isso carrega o TWRP so na RAM. NUNCA de fastboot flash
+  (flash grava e pode tirar teu root / brickar o boot).
+- Reiniciou, voltou tudo ao normal.
+
+1) CAPTURAR LOGS DO BOOT KSU (sem touch, sem adb no sistema)
+------------------------------------------------------------
+a) No PC: fastboot boot boot-ksu-284b.img
+b) Aguarda ~90s (trava na animacao e reboota sozinho)
+c) No PC: fastboot boot twrp.img
+d) No PC: adb devices  (tem que listar o aparelho em recovery)
+e) No PC: adb pull /sys/fs/pstore/console-ramoops-0 pstore-novo.txt
+f) Manda o pstore-novo.txt para analise.
+
+2) ATUALIZAR A ROM (Evolution X / GSI) SEM APAGAR NADA
+-----------------------------------------------------
+a) Baixa a imagem nova (system.img) no celular ou SD/OTG.
+b) fastboot boot twrp.img
+c) Install > Install Image > seleciona a imagem > particao System
+   (no A/B ele grava no slot inativo e alterna sozinho)
+d) Wipe > Advanced > limpa SOMENTE Dalvik/ART Cache e Cache.
+   NUNCA wipe em Data (apaga tudo).
+e) Reboot System.
+
+3) SE ALGO DER ERRADO
+---------------------
+- Bootloop: fastboot flash boot boot-stock.img (volta ao original)
+- Root sumiu: reflash do magisk_patched pelo fastboot ou TWRP.
+- TWRP sem touch: normal nessa tree; usa adb sideload ou SD/OTG.
