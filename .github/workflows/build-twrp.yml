@@ -1,0 +1,56 @@
+name: Build TWRP rhodec
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
+            git git-lfs gnupg gperf imagemagick lib32readline-dev lib32z1-dev \
+            libelf-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev \
+            libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool \
+            squashfs-tools xsltproc zip zlib1g-dev python3 openjdk-11-jdk
+          git lfs install || true
+          mkdir -p ~/bin
+          curl -sL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git config --global color.ui false
+
+      - name: Sync minimal manifest TWRP 11
+        run: |
+          mkdir -p twrp && cd twrp
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-11 --depth=1
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+      - name: Clonar device tree rhodec
+        working-directory: twrp
+        run: |
+          rm -rf device/motorola/rhodec
+          git clone https://github.com/EzequielDevTeam/android_device_motorola_rhodec.git -b rhodec_g-user-11-T1SSS33.1-119-8-16-e6fa84-release-keys --depth=1 device/motorola/rhodec
+
+      - name: Compilar bootimage (recovery-as-boot, A/B)
+        working-directory: twrp
+        run: |
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch omni_rhodec-eng
+          mka bootimage -j$(nproc --all) 2>&1 | tee build.log
+
+      - name: Upload TWRP
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp-rhodec
+          path: |
+            twrp/out/target/product/rhodec/boot.img
+            twrp/build.log
+          if-no-files-found: error
+          retention-days: 14
